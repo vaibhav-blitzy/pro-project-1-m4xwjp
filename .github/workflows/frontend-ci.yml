@@ -1,0 +1,120 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/web/**'
+
+env:
+  NODE_VERSION: '20.x'
+  COVERAGE_THRESHOLD: '80'
+  CI: true
+  NODE_ENV: test
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Cache dependencies and build output
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            ~/.npm
+            src/web/node_modules/.cache
+            src/web/build
+            src/web/coverage
+          key: npm-${{ runner.os }}-${{ hashFiles('src/web/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+        
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+        env:
+          CI: true
+          JEST_JUNIT_OUTPUT_DIR: ./coverage/junit
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: src/web/coverage
+          retention-days: 14
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          CI: true
+          NODE_ENV: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: src/web/dist
+          retention-days: 14
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
+
+      - name: Check bundle size
+        run: npm run analyze
+        continue-on-error: true
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('src/web/package-lock.json') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+
+      - name: Report job status
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { job, conclusion } = context;
+            const jobUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            const message = `Frontend CI ${conclusion === 'success' ? '✅' : '❌'}\n${jobUrl}`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
