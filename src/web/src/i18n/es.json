@@ -1,0 +1,111 @@
+{
+  "common": {
+    "actions": {
+      "create": "Crear",
+      "update": "Actualizar",
+      "delete": "Eliminar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "close": "Cerrar",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "submit": "Enviar"
+    },
+    "navigation": {
+      "dashboard": "Panel",
+      "projects": "Proyectos",
+      "tasks": "Tareas",
+      "settings": "Configuración",
+      "profile": "Perfil",
+      "logout": "Cerrar Sesión"
+    },
+    "auth": {
+      "login": "Iniciar Sesión",
+      "register": "Registrarse",
+      "forgotPassword": "Olvidé mi Contraseña",
+      "resetPassword": "Restablecer Contraseña",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña",
+      "rememberMe": "Recordarme"
+    },
+    "projects": {
+      "title": "Proyectos",
+      "createProject": "Crear Proyecto",
+      "editProject": "Editar Proyecto",
+      "projectName": "Nombre del Proyecto",
+      "projectDescription": "Descripción del Proyecto",
+      "startDate": "Fecha de Inicio",
+      "endDate": "Fecha de Finalización",
+      "status": "Estado",
+      "members": "Miembros"
+    },
+    "tasks": {
+      "title": "Tareas",
+      "createTask": "Crear Tarea",
+      "editTask": "Editar Tarea",
+      "taskName": "Nombre de la Tarea",
+      "taskDescription": "Descripción de la Tarea",
+      "assignee": "Asignado a",
+      "dueDate": "Fecha de Vencimiento",
+      "priority": "Prioridad",
+      "status": "Estado"
+    },
+    "notifications": {
+      "success": "Éxito",
+      "error": "Error",
+      "warning": "Advertencia",
+      "info": "Información"
+    },
+    "validation": {
+      "required": "Este campo es obligatorio",
+      "invalidEmail": "Dirección de correo inválida",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "minLength": "Debe tener al menos {{count}} caracteres",
+      "maxLength": "Debe tener menos de {{count}} caracteres"
+    },
+    "errors": {
+      "somethingWentWrong": "Algo salió mal",
+      "pageNotFound": "Página no encontrada",
+      "unauthorized": "Acceso no autorizado",
+      "sessionExpired": "Sesión expirada"
+    },
+    "dates": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "tomorrow": "Mañana",
+      "days": "días",
+      "weeks": "semanas",
+      "months": "meses",
+      "format": "dd/MM/yyyy",
+      "timeFormat": "HH:mm",
+      "shortFormat": "dd/MM/yy",
+      "monthYear": "MMMM yyyy",
+      "fullDateTime": "dd/MM/yyyy HH:mm"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "inProgress": "En Progreso",
+      "onHold": "En Espera",
+      "cancelled": "Cancelado"
+    },
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
+    },
+    "numbers": {
+      "decimalSeparator": ",",
+      "thousandSeparator": ".",
+      "currency": {
+        "symbol": "€",
+        "position": "suffix",
+        "format": "{{value}}{{symbol}}"
+      }
+    }
+  }
+}
