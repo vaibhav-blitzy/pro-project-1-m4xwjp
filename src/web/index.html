@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, shrink-to-fit=no" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="Task Management System - Streamline task organization and enhance team collaboration" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.datadoghq-browser-agent.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.example.com;" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+
+    <!-- Preconnect to required origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.example.com" crossorigin />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Primary font -->
+    <link href="@fontsource/inter/400.css" rel="stylesheet" />
+    <link href="@fontsource/inter/500.css" rel="stylesheet" />
+    <link href="@fontsource/inter/700.css" rel="stylesheet" />
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <!-- Critical CSS -->
+    <style>
+      .initial-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+        background-color: #ffffff;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+      }
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        z-index: 9999;
+        padding: 1rem;
+        background: #ffffff;
+        color: #1976d2;
+      }
+      .skip-link:focus {
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      @media (prefers-color-scheme: dark) {
+        .initial-loading {
+          background-color: #121212;
+        }
+      }
+    </style>
+
+    <title>Task Management System</title>
+  </head>
+  <body>
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    <!-- Initial loading state -->
+    <div id="initial-loading" class="initial-loading" role="progressbar" aria-label="Loading application">
+      <svg width="50" height="50" viewBox="0 0 50 50" aria-hidden="true">
+        <circle cx="25" cy="25" r="20" fill="none" stroke="#1976d2" stroke-width="5" stroke-linecap="round">
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            dur="1s"
+            from="0 25 25"
+            to="360 25 25"
+            repeatCount="indefinite"
+          />
+        </circle>
+      </svg>
+    </div>
+
+    <!-- Root application container -->
+    <div id="root" role="main" aria-label="Task Management Application"></div>
+
+    <!-- Noscript fallback -->
+    <noscript>
+      <div style="padding: 20px; text-align: center;">
+        JavaScript is required to run this application. Please enable JavaScript in your browser settings.
+      </div>
+    </noscript>
+
+    <!-- Application entry point -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- DataDog RUM initialization -->
+    <script>
+      window.DD_RUM && window.DD_RUM.init({
+        clientToken: 'pub-xxx',
+        applicationId: 'xxx',
+        site: 'datadoghq.com',
+        service: 'task-management-system',
+        env: 'production',
+        version: '1.0.0',
+        sessionSampleRate: 100,
+        trackUserInteractions: true,
+        trackResources: true,
+        trackLongTasks: true,
+        defaultPrivacyLevel: 'mask-user-input'
+      });
+    </script>
+  </body>
+</html>
