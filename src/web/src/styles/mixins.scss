@@ -1,0 +1,211 @@
+// =============================================================================
+// CORE MIXINS
+// Enterprise-grade SCSS mixins for responsive design, typography, layout,
+// animations, and Material Design 3 implementations
+// =============================================================================
+
+@use 'sass:math';
+@use './variables' as vars;
+
+// =============================================================================
+// FUNCTIONS
+// Utility functions for unit conversion and z-index management
+// =============================================================================
+
+@function calculate-rem($pixel_value) {
+  @if type-of($pixel_value) != 'number' {
+    @error 'calculate-rem() expects a number, got #{type-of($pixel_value)}';
+  }
+  @if $pixel_value == 0 {
+    @return 0;
+  }
+  @return math.div($pixel_value, 16) + rem;
+}
+
+@function z-index($component_name) {
+  $z-index-map: (
+    'drawer': vars.$z-index-drawer,
+    'modal': vars.$z-index-modal,
+    'snackbar': vars.$z-index-snackbar,
+    'tooltip': vars.$z-index-tooltip
+  );
+
+  @if not map-has-key($z-index-map, $component_name) {
+    @warn 'No z-index found for #{$component_name}, defaulting to 1';
+    @return 1;
+  }
+
+  @return map-get($z-index-map, $component_name);
+}
+
+// =============================================================================
+// RESPONSIVE MIXINS
+// Mobile-first approach with enhanced container queries
+// =============================================================================
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == 'xs' {
+    @media (min-width: vars.$breakpoint-xs) { @content; }
+  }
+  @if $breakpoint == 'sm' {
+    @media (min-width: vars.$breakpoint-sm) { @content; }
+  }
+  @if $breakpoint == 'md' {
+    @media (min-width: vars.$breakpoint-md) { @content; }
+  }
+  @if $breakpoint == 'lg' {
+    @media (min-width: vars.$breakpoint-lg) { @content; }
+  }
+}
+
+@mixin hide-on-mobile {
+  @media (max-width: vars.$breakpoint-sm - 1) {
+    display: none !important;
+  }
+}
+
+@mixin show-on-mobile {
+  @media (min-width: vars.$breakpoint-sm) {
+    display: none !important;
+  }
+}
+
+@mixin container-query($min, $max: null) {
+  @if $max {
+    @container (min-width: $min) and (max-width: $max) { @content; }
+  } @else {
+    @container (min-width: $min) { @content; }
+  }
+}
+
+// =============================================================================
+// LAYOUT MIXINS
+// 8px grid system implementation with flexible layouts
+// =============================================================================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin grid-container($columns: 12, $gap: vars.$spacing-unit) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: $gap;
+  width: 100%;
+}
+
+@mixin container-padding($multiplier: 1) {
+  padding: math.mul(vars.$spacing-unit, $multiplier);
+}
+
+@mixin grid-8px {
+  display: grid;
+  grid-gap: vars.$spacing-unit;
+}
+
+// =============================================================================
+// TYPOGRAPHY MIXINS
+// F-pattern layout support with responsive typography
+// =============================================================================
+
+@mixin heading-1 {
+  font-size: calculate-rem(32);
+  line-height: vars.$line-height-tight;
+  font-weight: vars.$font-weight-bold;
+  letter-spacing: vars.$letter-spacing-tight;
+  margin-bottom: vars.$spacing-lg;
+
+  @include respond-to('md') {
+    font-size: calculate-rem(40);
+  }
+}
+
+@mixin heading-2 {
+  font-size: calculate-rem(24);
+  line-height: vars.$line-height-tight;
+  font-weight: vars.$font-weight-bold;
+  letter-spacing: vars.$letter-spacing-tight;
+  margin-bottom: vars.$spacing-md;
+
+  @include respond-to('md') {
+    font-size: calculate-rem(32);
+  }
+}
+
+@mixin body-text {
+  font-size: calculate-rem(16);
+  line-height: vars.$line-height-normal;
+  font-weight: vars.$font-weight-regular;
+  letter-spacing: vars.$letter-spacing-normal;
+}
+
+@mixin f-pattern-text {
+  text-align: left;
+  max-width: 75ch;
+  margin-bottom: vars.$spacing-md;
+}
+
+// =============================================================================
+// MATERIAL DESIGN MIXINS
+// Enhanced Material Design 3 implementations with accessibility
+// =============================================================================
+
+@mixin elevation($level: 1) {
+  @if $level == 1 {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  } @else if $level == 2 {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+  } @else if $level == 3 {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.10);
+  } @else {
+    box-shadow: none;
+  }
+  transition: box-shadow vars.$transition-duration vars.$transition-timing;
+}
+
+@mixin ripple-effect {
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+
+  &::after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #000 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .5s, opacity 1s;
+  }
+
+  &:active::after {
+    transform: scale(0, 0);
+    opacity: .2;
+    transition: 0s;
+  }
+}
+
+@mixin transition-standard {
+  transition-duration: vars.$transition-duration;
+  transition-timing-function: vars.$transition-timing;
+}
+
+@mixin focus-visible {
+  &:focus-visible {
+    outline: 2px solid vars.$color-primary;
+    outline-offset: 2px;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
