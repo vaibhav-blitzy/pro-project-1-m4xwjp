@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: production
+  labels:
+    app: prometheus
+    component: monitoring
+    tier: monitoring
+    environment: production
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9090'
+    prometheus.io/path: '/metrics'
+    service.beta.kubernetes.io/monitor: 'true'
+    security.policy/restricted-access: 'monitoring-components-only'
+    description: 'Prometheus monitoring service endpoint'
+    maintainer: 'platform-team'
+    # Security and compliance annotations
+    security.policy.version: 'v1'
+    network.policy/allowed-ingress: 'monitoring-namespace'
+    monitoring.alpha.kubernetes.io/scrape: 'true'
+    backup.policy.retention: '30d'
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: http-metrics
+      # Explicitly defining protocol and name for better observability
+  selector:
+    app: prometheus
+    component: monitoring
+    # Matching selectors with deployment labels for proper service discovery
+  sessionAffinity: None
+  # Disable session affinity as Prometheus is stateless for metrics collection
+  publishNotReadyAddresses: false
+  # Only expose pods that are ready to serve traffic
+  ipFamilyPolicy: SingleStack
+  # Use IPv4 for compatibility and simplicity
+  internalTrafficPolicy: Cluster
+  # Route internal traffic efficiently within the cluster
