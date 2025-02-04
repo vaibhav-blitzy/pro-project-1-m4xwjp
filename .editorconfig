@@ -1,0 +1,45 @@
+# EditorConfig is awesome: https://EditorConfig.org
+# Root configuration file for Task Management System
+# Enforces consistent coding styles across different editors and IDEs
+
+# top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+indent_style = space
+indent_size = 2
+max_line_length = 100
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# TypeScript and JavaScript files
+[*.{ts,tsx,js,jsx}]
+indent_size = 2
+quote_type = single
+max_line_length = 100
+curly_bracket_next_line = false
+spaces_around_operators = true
+spaces_around_brackets = false
+indent_brace_style = 1tbs
+
+# JSON files
+[*.json]
+indent_size = 2
+quote_type = double
+max_line_length = 100
+insert_final_newline = true
+
+# YAML files
+[*.{yml,yaml}]
+indent_size = 2
+max_line_length = 100
+insert_final_newline = true
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+insert_final_newline = true
