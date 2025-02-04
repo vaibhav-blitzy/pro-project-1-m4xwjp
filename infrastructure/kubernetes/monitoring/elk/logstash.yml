@@ -1,0 +1,195 @@
+---
+# ConfigMap for Logstash configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: production
+  labels:
+    app: logstash
+    component: logging
+    tier: monitoring
+    security.compliance: required
+data:
+  logstash.yml: |
+    http.host: 0.0.0.0
+    xpack.monitoring.enabled: true
+    xpack.monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+    path.config: /usr/share/logstash/config
+    log.level: info
+    monitoring.enabled: true
+    queue.type: persisted
+
+  pipelines.yml: |
+    - pipeline.id: main
+      path.config: /usr/share/logstash/pipeline
+      pipeline.workers: 2
+      pipeline.batch.size: 125
+      pipeline.batch.delay: 50
+
+  pipeline/logstash.conf: |
+    input {
+      beats {
+        port => 5044
+        ssl => false
+      }
+      tcp {
+        port => 5000
+        codec => json
+        type => "json-input"
+      }
+    }
+
+    filter {
+      if [kubernetes] {
+        mutate {
+          add_field => {
+            "[@metadata][index]" => "k8s-%{+YYYY.MM.dd}"
+            "[@metadata][environment]" => "production"
+          }
+        }
+        json {
+          source => "message"
+          target => "parsed_json"
+        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["elasticsearch:9200"]
+        index => "%{[@metadata][index]}"
+        template_name => "logstash-%{[@metadata][environment]}"
+        template_overwrite => true
+      }
+    }
+
+---
+# Deployment for Logstash
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: production
+  labels:
+    app: logstash
+    component: logging
+    tier: monitoring
+    security.compliance: required
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+        component: logging
+        tier: monitoring
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9600'
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - logstash
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:8.0.0
+          ports:
+            - containerPort: 5044
+              name: beats
+              protocol: TCP
+            - containerPort: 5000
+              name: tcp-input
+              protocol: TCP
+            - containerPort: 9600
+              name: monitoring
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '1'
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/logstash/config/logstash.yml
+              subPath: logstash.yml
+            - name: config
+              mountPath: /usr/share/logstash/config/pipelines.yml
+              subPath: pipelines.yml
+            - name: config
+              mountPath: /usr/share/logstash/pipeline/logstash.conf
+              subPath: pipeline/logstash.conf
+          env:
+            - name: LS_JAVA_OPTS
+              value: '-Xms1g -Xmx1g'
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+      volumes:
+        - name: config
+          configMap:
+            name: logstash-config
+            defaultMode: 0440
+
+---
+# Service for Logstash
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: production
+  labels:
+    app: logstash
+    component: logging
+    tier: monitoring
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9600'
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5044
+      targetPort: 5044
+      protocol: TCP
+      name: beats
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: tcp-input
+    - port: 9600
+      targetPort: 9600
+      protocol: TCP
+      name: monitoring
+  selector:
+    app: logstash
