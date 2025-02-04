@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: production
+  labels:
+    app: task-management
+    component: backend
+    environment: production
+data:
+  # Database Configuration
+  database.json: |
+    {
+      "host": "postgres-service",
+      "port": "5432",
+      "database": "task_management",
+      "maxPoolSize": "20",
+      "minPoolSize": "4",
+      "idleTimeoutMillis": "30000",
+      "connectionTimeoutMillis": "2000",
+      "statementTimeoutMillis": "10000",
+      "poolCleanupIntervalMillis": "60000",
+      "maxClientConnections": "1000",
+      "applicationName": "task_management_backend",
+      "enableSsl": "true",
+      "sslMode": "verify-full",
+      "retryAttempts": "3",
+      "retryFactor": "2",
+      "retryMinTimeout": "1000",
+      "retryMaxTimeout": "5000"
+    }
+
+  # Redis Configuration
+  redis.json: |
+    {
+      "host": "redis-service",
+      "port": "6379",
+      "db": "0",
+      "keyPrefix": "tms:",
+      "clusterEnabled": "true",
+      "clusterNodes": "redis-node-0:6379,redis-node-1:6379,redis-node-2:6379",
+      "minConnections": "5",
+      "maxConnections": "50",
+      "idleTimeout": "10000",
+      "retryMaxAttempts": "5",
+      "retryInitialDelay": "1000",
+      "retryMaxDelay": "5000",
+      "healthCheckEnabled": "true",
+      "healthCheckInterval": "30000",
+      "memoryThreshold": "80",
+      "enableTls": "true",
+      "connectionTimeout": "5000",
+      "keepAlive": "true"
+    }
+
+  # RabbitMQ Configuration
+  rabbitmq.json: |
+    {
+      "host": "rabbitmq-service",
+      "port": "5672",
+      "vhost": "task_management",
+      "exchange": "task_management",
+      "deadLetterExchange": "task_management_dlx",
+      "queues": {
+        "notifications": "notifications_queue",
+        "tasks": "tasks_queue",
+        "projects": "projects_queue",
+        "deadLetter": "dead_letter_queue"
+      },
+      "retryAttempts": "5",
+      "retryInterval": "5000",
+      "retryBackoff": "exponential",
+      "messageTtl": "86400000",
+      "maxQueueLength": "10000",
+      "durable": "true",
+      "prefetchCount": "10",
+      "heartbeat": "60",
+      "connectionTimeout": "30000",
+      "sslEnabled": "true"
+    }
+
+  # Application Configuration
+  app.json: |
+    {
+      "nodeEnv": "production",
+      "apiVersion": "v1",
+      "logLevel": "info",
+      "logFormat": "json",
+      "corsOrigins": "*",
+      "rateLimitWindowMs": "900000",
+      "rateLimitMaxRequests": "1000",
+      "requestTimeoutMs": "30000",
+      "bodySizeLimit": "5mb",
+      "compressionEnabled": "true",
+      "trustProxy": "true",
+      "healthCheckPath": "/health",
+      "metricsPath": "/metrics",
+      "swaggerPath": "/api-docs",
+      "serviceName": "task_management_backend"
+    }
