@@ -1,0 +1,171 @@
+# Frontend Deployment Configuration for Task Management System
+# Provides container orchestration for React frontend with enhanced security and performance
+# Version: 1.0.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: production
+  labels:
+    app: frontend
+    tier: web
+    environment: production
+    version: "1.0.0"
+    component: "task-management-system"
+  annotations:
+    kubernetes.io/change-cause: "Initial deployment of frontend application"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+    deployment.kubernetes.io/revision: "1"
+
+spec:
+  # High availability with 3 replicas
+  replicas: 3
+  
+  # Zero-downtime deployment strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  # Pod selector
+  selector:
+    matchLabels:
+      app: frontend
+  
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: web
+      annotations:
+        checksum/config: "${CONFIG_CHECKSUM}"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+    
+    spec:
+      # Security context for the pod
+      securityContext:
+        fsGroup: 101
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Container specifications
+      containers:
+        - name: frontend
+          image: frontend:latest
+          imagePullPolicy: Always
+          
+          # Container ports
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          
+          # Resource limits and requests
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+          
+          # Environment configuration
+          envFrom:
+            - configMapRef:
+                name: frontend-config
+          
+          # Enhanced security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          
+          # Volume mounts
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache
+      
+      # Volumes
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+      
+      # Pod distribution and anti-affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - frontend
+                topologyKey: kubernetes.io/hostname
+      
+      # Graceful termination
+      terminationGracePeriodSeconds: 30
+      
+      # Image pull secrets
+      imagePullSecrets:
+        - name: registry-credentials
+      
+      # Node selection
+      nodeSelector:
+        kubernetes.io/role: worker
+      
+      # Tolerations for node conditions
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
