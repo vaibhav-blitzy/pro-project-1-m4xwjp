@@ -1,0 +1,227 @@
+// =============================================================================
+// ANIMATIONS
+// Core animation system following Material Design 3 motion principles
+// with performance optimizations and accessibility considerations
+// =============================================================================
+
+@use './variables' as vars;
+@use './mixins' as mix;
+
+// Animation duration tokens with accessibility support
+$animation-duration-xs: 100ms;
+$animation-duration-sm: 200ms;
+$animation-duration-md: 300ms;
+$animation-duration-lg: 400ms;
+
+// Material Design easing curves
+$animation-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+$animation-easing-decelerate: cubic-bezier(0.0, 0, 0.2, 1);
+$animation-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+// Performance optimization properties
+$will-change-transform: transform;
+$will-change-opacity: opacity;
+$gpu-acceleration: translate3d(0, 0, 0);
+
+// Accessibility preferences
+$reduced-motion-duration-scale: 0.5;
+
+// Animation duration function with reduced motion support
+@function get-animation-duration($size, $respect-reduced-motion: true) {
+  $duration: $animation-duration-md;
+  
+  @if $size == 'xs' {
+    $duration: $animation-duration-xs;
+  } @else if $size == 'sm' {
+    $duration: $animation-duration-sm;
+  } @else if $size == 'lg' {
+    $duration: $animation-duration-lg;
+  }
+  
+  @if $respect-reduced-motion {
+    @media (prefers-reduced-motion: reduce) {
+      $duration: $duration * $reduced-motion-duration-scale;
+    }
+  }
+  
+  @return $duration;
+}
+
+// Core animation keyframes
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes list-item-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes drawer-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-slide {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Animation utility classes
+.animate-fade-in {
+  animation: fade-in get-animation-duration('sm') $animation-easing-standard forwards;
+  will-change: $will-change-opacity;
+}
+
+.animate-fade-out {
+  animation: fade-out get-animation-duration('sm') $animation-easing-standard forwards;
+  will-change: $will-change-opacity;
+}
+
+.animate-slide-up {
+  animation: slide-up get-animation-duration('md') $animation-easing-decelerate forwards;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+}
+
+.animate-slide-down {
+  animation: slide-down get-animation-duration('md') $animation-easing-decelerate forwards;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+}
+
+.animate-scale-in {
+  animation: scale-in get-animation-duration('md') $animation-easing-standard forwards;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+}
+
+.animate-rotate {
+  animation: rotate get-animation-duration('lg') linear infinite;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+}
+
+// Animation mixins with performance optimization
+@mixin animate-fade($direction: 'in', $duration: 'sm') {
+  @include mix.transition-standard;
+  will-change: $will-change-opacity;
+  
+  @if $direction == 'in' {
+    animation: fade-in get-animation-duration($duration) $animation-easing-standard forwards;
+  } @else {
+    animation: fade-out get-animation-duration($duration) $animation-easing-standard forwards;
+  }
+}
+
+@mixin animate-slide($direction: 'up', $duration: 'md') {
+  @include mix.transition-standard;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+  
+  @if $direction == 'up' {
+    animation: slide-up get-animation-duration($duration) $animation-easing-decelerate forwards;
+  } @else {
+    animation: slide-down get-animation-duration($duration) $animation-easing-decelerate forwards;
+  }
+}
+
+@mixin animate-scale($duration: 'md') {
+  @include mix.transition-standard;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+  animation: scale-in get-animation-duration($duration) $animation-easing-standard forwards;
+}
+
+@mixin animate-rotate($duration: 'lg') {
+  @include mix.transition-standard;
+  will-change: $will-change-transform;
+  transform: $gpu-acceleration;
+  animation: rotate get-animation-duration($duration) linear infinite;
+}
+
+@mixin performance-optimize {
+  backface-visibility: hidden;
+  perspective: 1000;
+  transform: $gpu-acceleration;
+}
+
+@mixin respect-motion-preferences {
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: get-animation-duration('sm', true) !important;
+    transition-duration: get-animation-duration('sm', true) !important;
+    animation-iteration-count: 1 !important;
+    transition-property: none !important;
+  }
+}
