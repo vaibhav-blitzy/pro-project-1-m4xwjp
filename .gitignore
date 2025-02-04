@@ -1,0 +1,134 @@
+# Environment Files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+.env.docker
+src/backend/.env*
+src/web/.env*
+config.local.js
+*.local.json
+*.local.yaml
+*.local.yml
+
+# Dependencies
+node_modules/
+src/backend/node_modules/
+src/web/node_modules/
+.pnp/
+.pnp.js
+bower_components/
+jspm_packages/
+
+# Build Output
+dist/
+build/
+src/backend/dist/
+src/web/dist/
+src/web/build/
+.next/
+out/
+.nuxt/
+.output/
+.serverless/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+debug.log
+error.log
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+.history/
+.vim/
+
+# Test Coverage
+coverage/
+src/backend/coverage/
+src/web/coverage/
+.nyc_output/
+junit.xml
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+.stylelintcache
+.prettiercache
+src/web/.cache/
+src/backend/.cache/
+.webpack/
+.tsbuildinfo
+.rollup.cache/
+.parcel-cache/
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*~
+*.bak
+*.swx
+*.swap
+*.temp
+*.pid
+*.seed
+
+# SSL Certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv
+*.srl
+*.csr
+*.pfx
+*.p12
+
+# Database Files
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.backup
+
+# Package Manager Files
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Docker
+.docker/
+docker-compose.override.yml
+docker-compose.override.yaml
+.env.docker.local
