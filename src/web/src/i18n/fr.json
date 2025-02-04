@@ -1,0 +1,157 @@
+{
+  "common": {
+    "actions": {
+      "create": "Créer",
+      "update": "Mettre à jour", 
+      "delete": "Supprimer",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "close": "Fermer",
+      "back": "Retour",
+      "next": "Suivant",
+      "submit": "Soumettre"
+    },
+    "navigation": {
+      "dashboard": "Tableau de bord",
+      "projects": "Projets",
+      "tasks": "Tâches",
+      "settings": "Paramètres",
+      "profile": "Profil",
+      "logout": "Déconnexion"
+    },
+    "auth": {
+      "login": "Connexion",
+      "register": "S'inscrire",
+      "forgotPassword": "Mot de passe oublié",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "email": "Email",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "rememberMe": "Se souvenir de moi"
+    },
+    "projects": {
+      "title": "Projets",
+      "createProject": "Créer un projet",
+      "editProject": "Modifier le projet",
+      "projectName": "Nom du projet",
+      "projectDescription": "Description du projet",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "status": "Statut",
+      "members": "Membres"
+    },
+    "tasks": {
+      "title": "Tâches",
+      "createTask": "Créer une tâche",
+      "editTask": "Modifier la tâche",
+      "taskName": "Nom de la tâche",
+      "taskDescription": "Description de la tâche",
+      "assignee": "Responsable",
+      "dueDate": "Date d'échéance",
+      "priority": "Priorité",
+      "status": "Statut"
+    }
+  },
+  "dateTime": {
+    "formats": {
+      "short": "dd/MM/yyyy",
+      "medium": "d MMMM yyyy",
+      "long": "EEEE d MMMM yyyy",
+      "time24": "HH:mm",
+      "time12": "hh:mm a"
+    },
+    "months": {
+      "full": [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre"
+      ],
+      "short": [
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc."
+      ]
+    },
+    "weekdays": {
+      "full": [
+        "dimanche",
+        "lundi",
+        "mardi",
+        "mercredi",
+        "jeudi",
+        "vendredi",
+        "samedi"
+      ],
+      "short": [
+        "dim.",
+        "lun.",
+        "mar.",
+        "mer.",
+        "jeu.",
+        "ven.",
+        "sam."
+      ]
+    },
+    "relative": {
+      "today": "aujourd'hui",
+      "yesterday": "hier",
+      "tomorrow": "demain",
+      "past": "il y a {{count}} {{unit}}",
+      "future": "dans {{count}} {{unit}}"
+    }
+  },
+  "numbers": {
+    "decimal": ",",
+    "thousands": " ",
+    "currency": {
+      "format": "{{amount}} €",
+      "decimal": ",",
+      "thousands": " "
+    },
+    "percentage": {
+      "format": "{{amount}}%",
+      "decimal": ","
+    }
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "invalidEmail": "Adresse email invalide",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "minLength": "Doit contenir au moins {{count}} caractère(s)",
+    "maxLength": "Ne doit pas dépasser {{count}} caractère(s)",
+    "numeric": "Doit contenir uniquement des chiffres",
+    "alphanumeric": "Doit contenir uniquement des lettres et des chiffres"
+  },
+  "errors": {
+    "technical": {
+      "network": "Erreur de connexion réseau",
+      "server": "Erreur serveur interne",
+      "database": "Erreur de base de données",
+      "validation": "Erreur de validation des données"
+    },
+    "business": {
+      "unauthorized": "Accès non autorisé",
+      "forbidden": "Action non autorisée",
+      "notFound": "Ressource non trouvée",
+      "conflict": "Conflit de données"
+    }
+  }
+}
