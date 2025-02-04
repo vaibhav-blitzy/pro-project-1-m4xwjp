@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: production
+  labels:
+    app: jaeger
+    component: monitoring
+    version: "1.0.0"
+    part-of: observability-stack
+    managed-by: kubernetes
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "16686"
+    prometheus.io/path: "/metrics"
+    monitoring.kubernetes.io/service-name: "jaeger"
+    description: "Jaeger distributed tracing service endpoints"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 16686
+      targetPort: 16686
+      protocol: TCP
+      name: jaeger-ui
+      appProtocol: http
+    - port: 14250
+      targetPort: 14250
+      protocol: TCP
+      name: jaeger-grpc
+      appProtocol: grpc
+    - port: 14268
+      targetPort: 14268
+      protocol: TCP
+      name: jaeger-collector
+      appProtocol: http
+  selector:
+    app: jaeger
+    component: monitoring
+  sessionAffinity: None
+  publishNotReadyAddresses: false
