@@ -1,0 +1,88 @@
+---
+# Kubernetes Namespace configuration for Task Management System Staging Environment
+# API Version: v1
+# Purpose: Defines staging environment with resource constraints for pre-release testing
+
+# Namespace Definition
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    environment: staging
+    managed-by: terraform
+    app: task-management-system
+    isolation: strict
+  annotations:
+    network.kubernetes.io/policy: calico
+    description: Staging environment for Task Management System pre-release testing
+
+---
+# Resource Quota Definition
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-quota
+  namespace: staging
+  labels:
+    environment: staging
+    type: resource-quota
+spec:
+  hard:
+    # Compute Resources
+    cpu: "16"
+    memory: 32Gi
+    
+    # Workload Resources
+    pods: "50"
+    services: "20"
+    persistentvolumeclaims: "15"
+    
+    # Configuration Resources
+    secrets: "30"
+    configmaps: "30"
+    
+    # Storage Resources
+    requests.storage: 100Gi
+    
+    # Network Resources
+    services.nodeports: "5"
+    services.loadbalancers: "2"
+    
+    # Batch Resources
+    count/jobs.batch: "20"
+    count/cronjobs.batch: "10"
+
+---
+# Limit Range Definition
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limits
+  namespace: staging
+  labels:
+    environment: staging
+    type: limit-range
+spec:
+  limits:
+    # Container Resource Constraints
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 200m
+        memory: 256Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+    
+    # Storage Resource Constraints
+    - type: PersistentVolumeClaim
+      min:
+        storage: 1Gi
+      max:
+        storage: 10Gi
