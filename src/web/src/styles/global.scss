@@ -1,0 +1,226 @@
+// =============================================================================
+// GLOBAL STYLES
+// Core application styling implementing Material Design 3 principles
+// Version: 1.0.0
+// Dependencies:
+// - normalize.css@8.0.1
+// - @fontsource/inter@5.0.0
+// =============================================================================
+
+@use 'sass:math';
+@use './variables' as vars;
+@use './mixins' as mix;
+@use './themes' as themes;
+
+// Import normalize.css for consistent cross-browser styling
+@import 'normalize.css';
+
+// Import Inter font family
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/700.css';
+
+// =============================================================================
+// ROOT STYLES
+// Base HTML element configurations
+// =============================================================================
+
+:root {
+  font-size: 16px;
+  color-scheme: light dark;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+
+  @include mix.reduced-motion {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  font-family: vars.$font-family-primary;
+  line-height: vars.$line-height-normal;
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+  min-height: 100vh;
+  @include mix.transition-standard;
+}
+
+// =============================================================================
+// TYPOGRAPHY
+// Responsive typography with fluid scaling
+// =============================================================================
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  @include mix.f-pattern-text;
+}
+
+h1 { @include mix.heading-1; }
+h2 { @include mix.heading-2; }
+
+p {
+  @include mix.body-text;
+  margin-bottom: vars.$spacing-md;
+}
+
+// =============================================================================
+// ACCESSIBILITY
+// WCAG 2.1 Level AA compliance implementations
+// =============================================================================
+
+// Focus management
+:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+  border-radius: vars.$border-radius-sm;
+}
+
+// Skip to main content link
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  z-index: z-index('modal');
+  padding: vars.$spacing-md;
+  background: var(--theme-surface);
+  color: var(--theme-text-primary);
+
+  &:focus {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+// Screen reader only content
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+// =============================================================================
+// LAYOUT
+// Responsive layout system with 8px grid
+// =============================================================================
+
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 vars.$spacing-md;
+  max-width: vars.$breakpoint-lg;
+
+  @include mix.respond-to('sm') {
+    padding: 0 vars.$spacing-lg;
+  }
+}
+
+.grid {
+  @include mix.grid-8px;
+}
+
+// =============================================================================
+// MOTION
+// Animation and transition configurations
+// =============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.animate-fade {
+  @include mix.transition-standard;
+  transition-property: opacity;
+}
+
+// =============================================================================
+// THEME SUPPORT
+// Dynamic theme application with smooth transitions
+// =============================================================================
+
+// Light theme
+body[data-theme="light"] {
+  @include themes.apply-theme(themes.$theme-light);
+}
+
+// Dark theme
+body[data-theme="dark"] {
+  @include themes.apply-theme(themes.$theme-dark);
+}
+
+// System preference detection
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme]) {
+    @include themes.apply-theme(themes.$theme-dark);
+  }
+}
+
+// High contrast support
+@include themes.high-contrast-mode {
+  body[data-theme="light"] {
+    @include themes.apply-theme(themes.$theme-light-high-contrast);
+  }
+
+  body[data-theme="dark"] {
+    @include themes.apply-theme(themes.$theme-dark-high-contrast);
+  }
+}
+
+// =============================================================================
+// UTILITIES
+// Common utility classes
+// =============================================================================
+
+.visually-hidden {
+  @extend .sr-only;
+}
+
+.flex-center {
+  @include mix.flex-center;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Spacing utilities
+@each $size, $value in (
+  'xs': vars.$spacing-xs,
+  'sm': vars.$spacing-sm,
+  'md': vars.$spacing-md,
+  'lg': vars.$spacing-lg,
+  'xl': vars.$spacing-xl
+) {
+  .m-#{$size} { margin: $value; }
+  .mt-#{$size} { margin-top: $value; }
+  .mb-#{$size} { margin-bottom: $value; }
+  .ml-#{$size} { margin-left: $value; }
+  .mr-#{$size} { margin-right: $value; }
+  
+  .p-#{$size} { padding: $value; }
+  .pt-#{$size} { padding-top: $value; }
+  .pb-#{$size} { padding-bottom: $value; }
+  .pl-#{$size} { padding-left: $value; }
+  .pr-#{$size} { padding-right: $value; }
+}
