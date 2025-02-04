@@ -1,0 +1,180 @@
+---
+# ConfigMap for Kibana configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: production
+  labels:
+    app: kibana
+    component: logging
+    environment: production
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0.0.0.0"
+    elasticsearch.hosts: ["http://elasticsearch:9200"]
+    monitoring.ui.container.elasticsearch.enabled: true
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.security.audit.enabled: true
+    xpack.encryptedSavedObjects.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+    
+    # Monitoring and reporting
+    xpack.reporting.enabled: true
+    xpack.reporting.capture.maxAttempts: 3
+    xpack.monitoring.enabled: true
+    
+    # Performance settings
+    ops.interval: 5000
+    server.maxPayloadBytes: 10485760
+
+---
+# Deployment for Kibana
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: production
+  labels:
+    app: kibana
+    component: logging
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5601"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - kibana
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5601
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+        env:
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch:9200"
+        - name: KIBANA_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kibana-secrets
+              key: encryption-key
+        livenessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: kibana-config
+
+---
+# Service for Kibana
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: production
+  labels:
+    app: kibana
+    component: logging
+    environment: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5601"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5601
+    targetPort: 5601
+    protocol: TCP
+    name: http
+  selector:
+    app: kibana
+
+---
+# Network Policy for Kibana
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kibana-network-policy
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: kibana
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: production
+    ports:
+    - protocol: TCP
+      port: 5601
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: elasticsearch
+    ports:
+    - protocol: TCP
+      port: 9200
