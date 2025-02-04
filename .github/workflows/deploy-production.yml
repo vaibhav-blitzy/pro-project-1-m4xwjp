@@ -1,0 +1,193 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'infrastructure/kubernetes/**']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
+      deployment_window:
+        description: 'Deployment window'
+        required: true
+        type: string
+        default: 'off-peak'
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_BUILDKIT: '1'
+  AWS_REGION: 'us-east-1'
+  AWS_SECONDARY_REGION: 'us-west-2'
+  ENVIRONMENT: 'production'
+  DEPLOYMENT_TIMEOUT: '30m'
+  HEALTH_CHECK_RETRIES: '5'
+  ROLLBACK_TIMEOUT: '10m'
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+  deployments: write
+  security-events: write
+
+jobs:
+  validate_deployment:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    needs: [backend-build, backend-test, backend-security, frontend-build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run SAST scan
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: javascript, typescript
+
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -s https://raw.githubusercontent.com/instrumenta/kubeval/master/install.sh | bash
+          kubeval --strict infrastructure/kubernetes/**/*.yaml
+
+      - name: Check infrastructure configuration
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Verify secrets and environment variables
+        run: |
+          ./scripts/verify-secrets.sh
+          ./scripts/validate-env.sh
+
+      - name: Run dependency vulnerability scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  build_production_images:
+    name: Build Production Images
+    runs-on: ubuntu-latest
+    needs: validate_deployment
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ secrets.AWS_ACCOUNT_ID }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/backend
+          push: true
+          tags: ${{ secrets.ECR_REGISTRY }}/backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            VERSION=${{ github.sha }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/web
+          push: true
+          tags: ${{ secrets.ECR_REGISTRY }}/frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            VERSION=${{ github.sha }}
+
+      - name: Scan images for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.ECR_REGISTRY }}/backend:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+  deploy_production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build_production_images
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubernetes manifests
+        run: |
+          kubectl set image deployment/backend backend=${{ secrets.ECR_REGISTRY }}/backend:${{ github.sha }}
+          kubectl set image deployment/frontend frontend=${{ secrets.ECR_REGISTRY }}/frontend:${{ github.sha }}
+
+      - name: Apply blue deployment
+        run: |
+          kubectl apply -f infrastructure/kubernetes/blue/
+          kubectl rollout status deployment/backend-blue
+          kubectl rollout status deployment/frontend-blue
+
+      - name: Run smoke tests
+        run: |
+          ./scripts/smoke-tests.sh
+          ./scripts/performance-tests.sh
+
+      - name: Shift traffic
+        run: |
+          kubectl apply -f infrastructure/kubernetes/ingress-blue.yaml
+          sleep 30
+          for i in {1..5}; do
+            ./scripts/health-check.sh || exit 1
+            sleep 30
+          done
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -o wide
+          kubectl top pods
+          ./scripts/verify-metrics.sh
+
+      - name: Cleanup old deployment
+        if: success()
+        run: |
+          kubectl delete -f infrastructure/kubernetes/green/
+          kubectl apply -f infrastructure/kubernetes/ingress-cleanup.yaml
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          kubectl rollout undo deployment/backend
+          kubectl rollout undo deployment/frontend
+          kubectl apply -f infrastructure/kubernetes/ingress-rollback.yaml
+
+      - name: Notify deployment status
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message: "Production Deployment ${{ job.status }}\nCommit: ${{ github.sha }}\nEnvironment: ${{ env.ENVIRONMENT }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
