@@ -1,0 +1,244 @@
+// =============================================================================
+// THEMES
+// Material Design 3 theme system with accessibility support
+// Version: 1.0.0
+// =============================================================================
+
+@use 'sass:color';
+@use 'sass:math';
+@use './variables' as vars;
+@use './mixins' as mix;
+
+// =============================================================================
+// THEME MAPS
+// Core theme configurations with accessibility support
+// =============================================================================
+
+// Light theme configuration
+$theme-light: (
+  background: vars.$theme-light-background,
+  surface: vars.$theme-light-surface,
+  text-primary: rgba(0, 0, 0, 0.87),
+  text-secondary: rgba(0, 0, 0, 0.6),
+  primary: vars.$color-primary,
+  secondary: vars.$color-secondary,
+  error: vars.$color-error,
+  warning: vars.$color-warning,
+  info: vars.$color-info,
+  success: vars.$color-success,
+  surface-1: vars.$surface-1,
+  surface-2: vars.$surface-2,
+  surface-3: vars.$surface-3,
+  surface-4: vars.$surface-4,
+  surface-5: vars.$surface-5,
+  high-contrast: false
+);
+
+// Dark theme configuration
+$theme-dark: (
+  background: vars.$theme-dark-background,
+  surface: vars.$theme-dark-surface,
+  text-primary: rgba(255, 255, 255, 0.87),
+  text-secondary: rgba(255, 255, 255, 0.6),
+  primary: lighten(vars.$color-primary, 15%),
+  secondary: lighten(vars.$color-secondary, 15%),
+  error: lighten(vars.$color-error, 15%),
+  warning: lighten(vars.$color-warning, 15%),
+  info: lighten(vars.$color-info, 15%),
+  success: lighten(vars.$color-success, 15%),
+  surface-1: darken(vars.$surface-1, 85%),
+  surface-2: darken(vars.$surface-2, 85%),
+  surface-3: darken(vars.$surface-3, 85%),
+  surface-4: darken(vars.$surface-4, 85%),
+  surface-5: darken(vars.$surface-5, 85%),
+  high-contrast: false
+);
+
+// High contrast light theme
+$theme-light-high-contrast: (
+  background: #ffffff,
+  surface: #f8f8f8,
+  text-primary: #000000,
+  text-secondary: #1a1a1a,
+  primary: darken(vars.$color-primary, 10%),
+  secondary: darken(vars.$color-secondary, 10%),
+  error: darken(vars.$color-error, 10%),
+  warning: darken(vars.$color-warning, 10%),
+  info: darken(vars.$color-info, 10%),
+  success: darken(vars.$color-success, 10%),
+  surface-1: #f0f0f0,
+  surface-2: #e8e8e8,
+  surface-3: #e0e0e0,
+  surface-4: #d8d8d8,
+  surface-5: #d0d0d0,
+  high-contrast: true
+);
+
+// High contrast dark theme
+$theme-dark-high-contrast: (
+  background: #000000,
+  surface: #0a0a0a,
+  text-primary: #ffffff,
+  text-secondary: #f0f0f0,
+  primary: lighten(vars.$color-primary, 25%),
+  secondary: lighten(vars.$color-secondary, 25%),
+  error: lighten(vars.$color-error, 25%),
+  warning: lighten(vars.$color-warning, 25%),
+  info: lighten(vars.$color-info, 25%),
+  success: lighten(vars.$color-success, 25%),
+  surface-1: #1a1a1a,
+  surface-2: #2a2a2a,
+  surface-3: #3a3a3a,
+  surface-4: #4a4a4a,
+  surface-5: #5a5a5a,
+  high-contrast: true
+);
+
+// Combined color schemes
+$color-schemes: (
+  light: $theme-light,
+  dark: $theme-dark,
+  high-contrast-light: $theme-light-high-contrast,
+  high-contrast-dark: $theme-dark-high-contrast
+);
+
+// Minimum contrast ratios per WCAG 2.1
+$minimum-contrast-ratios: (
+  normal: 4.5,
+  large-text: 3,
+  enhanced: 7
+);
+
+// =============================================================================
+// FUNCTIONS
+// Theme utility functions with accessibility support
+// =============================================================================
+
+// Calculate contrast ratio between two colors
+@function calculate-contrast-ratio($foreground, $background) {
+  $foreground-luminance: color.lightness($foreground) / 100;
+  $background-luminance: color.lightness($background) / 100;
+  
+  $lighter: max($foreground-luminance, $background-luminance);
+  $darker: min($foreground-luminance, $background-luminance);
+  
+  @return ($lighter + 0.05) / ($darker + 0.05);
+}
+
+// Get theme color with contrast validation
+@function get-theme-color($color-name, $contrast-mode: 'normal') {
+  $current-theme: $theme-light;
+  
+  @if map-get($current-theme, high-contrast) {
+    $current-theme: if($current-theme == $theme-light, $theme-light-high-contrast, $theme-dark-high-contrast);
+  }
+  
+  $color: map-get($current-theme, $color-name);
+  $background: map-get($current-theme, background);
+  $min-contrast: map-get($minimum-contrast-ratios, $contrast-mode);
+  
+  $contrast-ratio: calculate-contrast-ratio($color, $background);
+  
+  @if $contrast-ratio < $min-contrast {
+    @if map-get($current-theme, high-contrast) {
+      $color: if($background == #000000, #ffffff, #000000);
+    } @else {
+      $color: if($contrast-ratio < $min-contrast,
+        if(color.lightness($background) > 50%,
+          darken($color, 20%),
+          lighten($color, 20%)),
+        $color);
+    }
+  }
+  
+  @return $color;
+}
+
+// Generate accessible color variants
+@function generate-color-variants($base-color, $contrast-ratio: 4.5) {
+  $variants: ();
+  
+  @for $i from 1 through 9 {
+    $light-variant: lighten($base-color, $i * 10%);
+    $dark-variant: darken($base-color, $i * 10%);
+    
+    $variants: map-merge($variants, (
+      'lighter-#{$i}': $light-variant,
+      'darker-#{$i}': $dark-variant
+    ));
+  }
+  
+  @return $variants;
+}
+
+// =============================================================================
+// MIXINS
+// Theme application mixins with transition support
+// =============================================================================
+
+// Apply theme colors with transitions
+@mixin apply-theme($theme-map) {
+  @include mix.transition-standard;
+  
+  background-color: map-get($theme-map, background);
+  color: map-get($theme-map, text-primary);
+  
+  // Generate CSS custom properties for theme colors
+  @each $key, $value in $theme-map {
+    @if type-of($value) == color {
+      --theme-#{$key}: #{$value};
+    }
+  }
+}
+
+// Apply high contrast mode
+@mixin high-contrast-mode {
+  @media (prefers-contrast: more) {
+    @content;
+  }
+}
+
+// Apply reduced motion preferences
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+// =============================================================================
+// THEME APPLICATION
+// Core theme classes with system preference detection
+// =============================================================================
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @include apply-theme($theme-light);
+  
+  @media (prefers-color-scheme: dark) {
+    @include apply-theme($theme-dark);
+  }
+  
+  &[data-theme="light"] {
+    @include apply-theme($theme-light);
+  }
+  
+  &[data-theme="dark"] {
+    @include apply-theme($theme-dark);
+  }
+  
+  @include high-contrast-mode {
+    @media (prefers-color-scheme: light) {
+      @include apply-theme($theme-light-high-contrast);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      @include apply-theme($theme-dark-high-contrast);
+    }
+  }
+  
+  @include reduced-motion;
+}
