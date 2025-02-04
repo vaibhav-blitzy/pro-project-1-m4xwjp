@@ -1,0 +1,65 @@
+# Frontend Service Configuration for Task Management System
+# Provides internal cluster access and load balancing for frontend pods
+# Version: 1.0.0
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: production
+  labels:
+    app: frontend
+    tier: web
+    environment: production
+    component: "task-management-system"
+    version: "1.0.0"
+  annotations:
+    # Enable Prometheus metrics scraping
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+    # Service description
+    service.kubernetes.io/description: "Frontend service for Task Management System"
+    # Load balancer configurations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout: "60"
+
+spec:
+  # Use ClusterIP for internal access, Ingress will handle external traffic
+  type: ClusterIP
+  
+  # Port configurations
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  
+  # Pod selector matching deployment labels
+  selector:
+    app: frontend
+    tier: web
+  
+  # Session affinity configuration
+  sessionAffinity: None
+  
+  # Publishing not ready addresses configuration
+  publishNotReadyAddresses: false
+  
+  # IP family policy
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
+
+  # Topology aware hints for better load distribution
+  topologyKeys:
+    - "kubernetes.io/hostname"
+    - "topology.kubernetes.io/zone"
+    - "topology.kubernetes.io/region"
+    - "*"
