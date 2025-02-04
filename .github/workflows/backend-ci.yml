@@ -1,0 +1,152 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['src/backend/**']
+  pull_request:
+    branches: [main, develop]
+    paths: ['src/backend/**']
+
+env:
+  NODE_VERSION: '20.x'
+  WORKING_DIRECTORY: 'src/backend'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ${{ env.WORKING_DIRECTORY }}
+
+permissions:
+  contents: read
+  actions: write
+  security-events: write
+
+jobs:
+  build:
+    name: Build and Quality Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compilation
+        run: npm run build
+
+      - name: ESLint check
+        run: npm run lint
+
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.ts"
+
+      - name: Cache build artifacts
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+  test:
+    name: Run Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore build artifacts
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: ${{ env.WORKING_DIRECTORY }}/coverage
+          retention-days: 14
+
+      - name: Check coverage thresholds
+        run: |
+          COVERAGE_SUMMARY=$(cat coverage/coverage-summary.json)
+          BRANCHES=$(echo $COVERAGE_SUMMARY | jq '.total.branches.pct')
+          FUNCTIONS=$(echo $COVERAGE_SUMMARY | jq '.total.functions.pct')
+          LINES=$(echo $COVERAGE_SUMMARY | jq '.total.lines.pct')
+          STATEMENTS=$(echo $COVERAGE_SUMMARY | jq '.total.statements.pct')
+          
+          if (( $(echo "$BRANCHES < 80" | bc -l) )) || \
+             (( $(echo "$FUNCTIONS < 80" | bc -l) )) || \
+             (( $(echo "$LINES < 80" | bc -l) )) || \
+             (( $(echo "$STATEMENTS < 80" | bc -l) )); then
+            echo "Coverage thresholds not met"
+            exit 1
+          fi
+
+  security:
+    name: Security Scan
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-report
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/snyk-report.json
+            ${{ env.WORKING_DIRECTORY }}/npm-audit.json
+          retention-days: 30
