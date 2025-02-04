@@ -1,0 +1,159 @@
+// Import required Sass modules
+@use 'sass:math' as math;
+@use 'sass:color' as color;
+
+// =============================================================================
+// BREAKPOINTS
+// Mobile-first breakpoints following Material Design 3 principles
+// =============================================================================
+$breakpoint-xs: 320px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 1024px;
+$breakpoint-lg: 1440px;
+
+// =============================================================================
+// SPACING
+// 8px grid system with consistent spacing scale
+// =============================================================================
+$spacing-unit: 8px;
+$spacing-xs: 4px;    // 0.5x
+$spacing-sm: 8px;    // 1x
+$spacing-md: 16px;   // 2x
+$spacing-lg: 24px;   // 3x
+$spacing-xl: 32px;   // 4x
+
+// =============================================================================
+// COLORS
+// Material Design 3 color system
+// =============================================================================
+
+// Base colors
+$color-primary: #1976d2;
+$color-secondary: #9c27b0;
+$color-error: #d32f2f;
+$color-warning: #ed6c02;
+$color-info: #0288d1;
+$color-success: #2e7d32;
+
+// Surface colors
+$surface-1: #f8f9fa;
+$surface-2: #f3f4f6;
+$surface-3: #e9ecef;
+$surface-4: #dee2e6;
+$surface-5: #ced4da;
+
+// State colors
+$state-hover: rgba(0, 0, 0, 0.04);
+$state-focus: rgba(0, 0, 0, 0.12);
+$state-pressed: rgba(0, 0, 0, 0.16);
+
+// Overlay colors
+$overlay-light: rgba(255, 255, 255, 0.8);
+$overlay-dark: rgba(0, 0, 0, 0.6);
+
+// =============================================================================
+// THEME COLORS
+// Light and dark theme color tokens
+// =============================================================================
+
+// Light theme
+$theme-light-background: #ffffff;
+$theme-light-surface: #f5f5f5;
+
+// Dark theme
+$theme-dark-background: #121212;
+$theme-dark-surface: #1e1e1e;
+
+// High contrast
+$high-contrast-light: #ffffff;
+$high-contrast-dark: #000000;
+
+// =============================================================================
+// TYPOGRAPHY
+// Type scale and properties
+// =============================================================================
+
+// Font family
+$font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+// Type scale
+$h1-size: 2.5rem;
+$h2-size: 2rem;
+$h3-size: 1.75rem;
+$h4-size: 1.5rem;
+$h5-size: 1.25rem;
+$h6-size: 1rem;
+$body1-size: 1rem;
+$body2-size: 0.875rem;
+
+// Line heights
+$line-height-tight: 1.2;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// Letter spacing
+$letter-spacing-tight: -0.025em;
+$letter-spacing-normal: 0;
+$letter-spacing-wide: 0.025em;
+
+// Font weights
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// =============================================================================
+// Z-INDEX
+// Layering system
+// =============================================================================
+$z-index-drawer: 1200;
+$z-index-modal: 1300;
+$z-index-snackbar: 1400;
+$z-index-tooltip: 1500;
+
+// =============================================================================
+// BORDERS
+// Border radius tokens
+// =============================================================================
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+
+// =============================================================================
+// TRANSITIONS
+// Animation timing
+// =============================================================================
+$transition-duration: 200ms;
+$transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+
+// =============================================================================
+// FUNCTIONS
+// Utility functions for theme management
+// =============================================================================
+
+// Calculate spacing based on base unit
+@function spacing($multiplier) {
+  @return math.mul($spacing-unit, $multiplier);
+}
+
+// Get theme-aware color value
+@function get-color($color-name) {
+  @if map-has-key($colors, $color-name) {
+    @return map-get($colors, $color-name);
+  }
+  @return null;
+}
+
+// Get theme-specific value based on color scheme
+@function get-theme-value($token-name, $scheme: 'light') {
+  $high-contrast-mode: false; // This should be tied to system/user preference
+  
+  @if $high-contrast-mode {
+    @return if($scheme == 'light', $high-contrast-light, $high-contrast-dark);
+  }
+  
+  @if $scheme == 'light' {
+    @return var(--#{$token-name}, $theme-light-background);
+  } @else {
+    @return var(--#{$token-name}, $theme-dark-background);
+  }
+}
