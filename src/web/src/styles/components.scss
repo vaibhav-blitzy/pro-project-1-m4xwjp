@@ -1,0 +1,295 @@
+// =============================================================================
+// COMPONENTS.SCSS
+// Core SCSS component styles implementing Material Design 3
+// Version: 1.0.0
+// =============================================================================
+
+@use 'sass:math';
+@use './variables' as vars;
+@use './mixins' as mix;
+
+// =============================================================================
+// THEME SYSTEM
+// Enhanced theme support with system preference detection
+// =============================================================================
+
+:root {
+  // Generate CSS custom properties for theme colors
+  @each $name, $value in vars.$theme-colors {
+    --color-#{$name}: #{$value};
+  }
+
+  color-scheme: light dark;
+}
+
+.theme-light {
+  --background-color: #{vars.$theme-light-background};
+  --surface-color: #{vars.$theme-light-surface};
+  --text-primary: rgba(0, 0, 0, 0.87);
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  
+  @include mix.respond-to('dark-mode') {
+    @media (prefers-color-scheme: dark) {
+      --background-color: #{vars.$theme-dark-background};
+      --surface-color: #{vars.$theme-dark-surface};
+      --text-primary: rgba(255, 255, 255, 0.87);
+      --text-secondary: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
+.high-contrast {
+  --background-color: #{vars.$high-contrast-light};
+  --text-primary: #{vars.$high-contrast-dark};
+  --outline-color: #{vars.$high-contrast-dark};
+  
+  * {
+    border-color: currentColor !important;
+  }
+}
+
+// =============================================================================
+// BUTTON COMPONENT
+// Material Design button variants with enhanced accessibility
+// =============================================================================
+
+.btn {
+  font-family: vars.$font-family-primary;
+  font-weight: vars.$font-weight-medium;
+  border-radius: vars.$border-radius-md;
+  padding: vars.$spacing-sm vars.$spacing-md;
+  cursor: pointer;
+  @include mix.transition-standard;
+  @include mix.ripple-effect;
+
+  // Button variants
+  &--contained {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    @include mix.elevation(1);
+
+    &:hover {
+      @include mix.elevation(2);
+    }
+  }
+
+  &--outlined {
+    background-color: transparent;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+
+    &:hover {
+      background-color: vars.$state-hover;
+    }
+  }
+
+  &--text {
+    background-color: transparent;
+    border: none;
+    color: var(--color-primary);
+
+    &:hover {
+      background-color: vars.$state-hover;
+    }
+  }
+
+  // Sizes
+  &--small {
+    padding: vars.$spacing-xs vars.$spacing-sm;
+    font-size: vars.$body2-size;
+  }
+
+  &--large {
+    padding: vars.$spacing-md vars.$spacing-lg;
+    font-size: vars.$h6-size;
+  }
+
+  // Accessibility
+  &:focus-visible {
+    @include mix.focus-visible;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// =============================================================================
+// CARD COMPONENT
+// Material Design cards with responsive layout
+// =============================================================================
+
+.card {
+  background-color: var(--surface-color);
+  border-radius: vars.$border-radius-lg;
+  overflow: hidden;
+  @include mix.elevation(1);
+  @include mix.container-padding;
+
+  &__header {
+    @include mix.f-pattern-text;
+    padding-bottom: vars.$spacing-md;
+  }
+
+  &__content {
+    @include mix.body-text;
+  }
+
+  &__actions {
+    @include mix.flex-center;
+    padding-top: vars.$spacing-md;
+    gap: vars.$spacing-sm;
+  }
+
+  // Responsive behavior
+  @include mix.respond-to('sm') {
+    @include mix.container-padding(2);
+  }
+
+  // Container queries for nested layouts
+  @include mix.container-query(vars.$breakpoint-sm) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: vars.$spacing-lg;
+  }
+}
+
+// =============================================================================
+// INPUT COMPONENT
+// Material Design text inputs with floating labels
+// =============================================================================
+
+.input {
+  position: relative;
+  margin-bottom: vars.$spacing-md;
+
+  &__field {
+    width: 100%;
+    padding: vars.$spacing-md;
+    border: 1px solid var(--text-secondary);
+    border-radius: vars.$border-radius-sm;
+    background-color: transparent;
+    font-family: vars.$font-family-primary;
+    font-size: vars.$body1-size;
+    transition: border-color vars.$transition-duration vars.$transition-timing;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    &:disabled {
+      background-color: vars.$state-hover;
+      cursor: not-allowed;
+    }
+  }
+
+  &__label {
+    position: absolute;
+    left: vars.$spacing-md;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform vars.$transition-duration vars.$transition-timing;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+
+  &__field:focus + &__label,
+  &__field:not(:placeholder-shown) + &__label {
+    transform: translateY(-130%) scale(0.8);
+    color: var(--color-primary);
+  }
+}
+
+// =============================================================================
+// MODAL COMPONENT
+// Accessible modal dialog with backdrop
+// =============================================================================
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: vars.$z-index-modal;
+
+  &__backdrop {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: vars.$overlay-dark;
+  }
+
+  &__content {
+    position: relative;
+    background-color: var(--surface-color);
+    border-radius: vars.$border-radius-lg;
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+    @include mix.elevation(3);
+    @include mix.container-padding(2);
+
+    @include mix.respond-to('sm') {
+      max-width: 600px;
+    }
+  }
+}
+
+// =============================================================================
+// UTILITY CLASSES
+// Common utility classes for layout and spacing
+// =============================================================================
+
+.elevation {
+  @for $i from 1 through 3 {
+    &-#{$i} {
+      @include mix.elevation($i);
+    }
+  }
+}
+
+.spacing {
+  @each $size, $value in (
+    'xs': vars.$spacing-xs,
+    'sm': vars.$spacing-sm,
+    'md': vars.$spacing-md,
+    'lg': vars.$spacing-lg,
+    'xl': vars.$spacing-xl
+  ) {
+    &-#{$size} {
+      padding: $value;
+    }
+  }
+}
+
+// =============================================================================
+// ACCESSIBILITY ENHANCEMENTS
+// Focus and motion preferences
+// =============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
