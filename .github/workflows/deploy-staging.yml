@@ -1,0 +1,212 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'src/**'
+      - 'infrastructure/kubernetes/**'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_BUILDKIT: '1'
+  AWS_REGION: 'us-east-1'
+  ENVIRONMENT: 'staging'
+  DOCKER_CACHE_FROM: 'type=gha,scope=staging'
+  DOCKER_CACHE_TO: 'type=gha,scope=staging,mode=max'
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+  deployments: write
+
+jobs:
+  backend-build:
+    uses: ./.github/workflows/backend-ci.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  backend-test:
+    needs: backend-build
+    uses: ./.github/workflows/backend-ci.yml
+    with:
+      environment: staging
+    secrets: inherit
+
+  build_images:
+    name: Build and Push Container Images
+    needs: [backend-build, backend-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      backend_image: ${{ steps.backend_image.outputs.digest }}
+      frontend_image: ${{ steps.frontend_image.outputs.digest }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+          buildkitd-flags: --debug
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-staging
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        id: ecr-login
+
+      - name: Build backend image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/backend
+          file: ./src/backend/Dockerfile
+          push: false
+          tags: ${{ steps.ecr-login.outputs.registry }}/backend:${{ github.sha }}
+          cache-from: ${{ env.DOCKER_CACHE_FROM }}
+          cache-to: ${{ env.DOCKER_CACHE_TO }}
+          target: production
+
+      - name: Scan backend image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.10.0
+        with:
+          image: ${{ steps.ecr-login.outputs.registry }}/backend:${{ github.sha }}
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Push backend image
+        uses: docker/build-push-action@v3
+        id: backend_image
+        with:
+          context: ./src/backend
+          file: ./src/backend/Dockerfile
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/backend:${{ github.sha }}
+          cache-from: ${{ env.DOCKER_CACHE_FROM }}
+          cache-to: ${{ env.DOCKER_CACHE_TO }}
+          target: production
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./src/frontend
+          file: ./src/frontend/Dockerfile
+          push: false
+          tags: ${{ steps.ecr-login.outputs.registry }}/frontend:${{ github.sha }}
+          cache-from: ${{ env.DOCKER_CACHE_FROM }}
+          cache-to: ${{ env.DOCKER_CACHE_TO }}
+          target: production
+
+      - name: Scan frontend image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.10.0
+        with:
+          image: ${{ steps.ecr-login.outputs.registry }}/frontend:${{ github.sha }}
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Push frontend image
+        uses: docker/build-push-action@v3
+        id: frontend_image
+        with:
+          context: ./src/frontend
+          file: ./src/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/frontend:${{ github.sha }}
+          cache-from: ${{ env.DOCKER_CACHE_FROM }}
+          cache-to: ${{ env.DOCKER_CACHE_TO }}
+          target: production
+
+  deploy_staging:
+    name: Deploy to Staging
+    needs: build_images
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: staging
+      url: https://staging.taskmanager.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-staging
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.27.3'
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name staging-cluster --region ${{ env.AWS_REGION }}
+
+      - name: Update deployment manifests
+        run: |
+          cd infrastructure/kubernetes/staging
+          kustomize edit set image backend=${{ needs.build_images.outputs.backend_image }}
+          kustomize edit set image frontend=${{ needs.build_images.outputs.frontend_image }}
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k infrastructure/kubernetes/staging
+          kubectl rollout status deployment/backend -n staging
+          kubectl rollout status deployment/frontend -n staging
+
+      - name: Run smoke tests
+        run: |
+          ./scripts/smoke-tests.sh https://staging.taskmanager.com
+        env:
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+
+      - name: Verify deployment health
+        run: |
+          kubectl get pods -n staging
+          kubectl get services -n staging
+          kubectl get ingress -n staging
+
+      - name: Create deployment status
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const deployment = await github.rest.repos.createDeployment({
+              owner,
+              repo,
+              ref: context.sha,
+              environment: 'staging',
+              auto_merge: false,
+              required_contexts: []
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner,
+              repo,
+              deployment_id: deployment.data.id,
+              state: '${{ job.status }}',
+              environment_url: 'https://staging.taskmanager.com',
+              log_url: `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
+              description: 'Staging deployment ${{ job.status }}'
+            });
